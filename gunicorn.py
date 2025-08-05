@@ -21,6 +21,7 @@ threads = 2  # 指定每个工作者的线程数
 # Logging Options
 loglevel = 'debug'  # 错误日志的日志级别
 access_log_format = '%(t)s %(p)s %(h)s "%(r)s" %(s)s %(L)s %(b)s %(f)s" "%(a)s"'
+
 # 设置访问日志和错误信息日志路径
 log_dir = "./logs"
 if not os.path.exists(log_dir):
