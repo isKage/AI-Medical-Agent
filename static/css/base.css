@@ -1,0 +1,50 @@
+/* 灰蓝色 active 导航项样式 */
+.nav-item.active .nav-link {
+    background-color: #d4e3f1;
+    border-radius: 4px;
+    transition: background-color 0.3s;
+}
+
+/* 悬停时加深颜色 */
+.nav-item.active .nav-link:hover {
+    background-color: #99b5cb;
+}
+
+#uidText {
+    cursor: pointer;
+    position: relative;
+    display: inline-block;
+}
+
+#copyTip {
+    position: absolute;
+    right: -60px;
+    top: 0;
+    background: #4caf50;
+    color: white;
+    padding: 2px 4px;
+    font-size: 12px;
+    opacity: 0;
+    transition: opacity 0.3s;
+    pointer-events: none;
+}
+
+.login-container {
+    max-width: 400px;
+    margin-top: 100px;
+    padding: 30px;
+    background: #fff;
+    border-radius: 1rem;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+
+.btn-login {
+    position: absolute;
+    bottom: 20px;
+    right: 20px;
+}
+
+.form-wrapper {
+    position: relative;
+    padding-bottom: 60px; /* 留出空间给按钮 */
+}

@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+
+{% block title %}
+问诊对话
+{% endblock %}
+
+{% block css %}
+<link rel="stylesheet" href="/static/css/chat.css">
+{% endblock %}
+
+
+{% block content %}
+<div class="container mt-5 pt-4" style="max-width: 1200px">
+    <!-- 对话框 -->
+    <div id="chat-box">
+        {% if show %}
+            {% for m in messages %}
+                {% if m.role == "user" %}
+                    <div class="message-row user">
+                        <div class="avatar">
+                            <i class="bi bi-person fs-5"></i>
+                        </div>
+                        <div class="message-bubble">
+                            {{ m.content }}
+                        </div>
+                    </div>
+                {% elif m.role == "system" %}
+                    <div class="message-row ai">
+                        <div class="avatar">
+                            <i class="bi bi-robot fs-5"></i>
+                        </div>
+                        <div class="message-bubble">
+                            {{ m.content }}
+                        </div>
+                    </div>
+                {% endif %}
+            {% endfor %}
+        {% else %}
+            <!-- 初始欢迎消息 -->
+            <div class="message-row ai">
+                <div class="avatar">
+                    <i class="bi bi-robot fs-5"></i>
+                </div>
+                <div class="message-bubble">
+                    你好！我是AI医生助手。请您尽可能<b style="color: darkblue">具体详细地描述一下您的症状</b>。例如：
+                    <div>• 身体哪里不舒服</div>
+                    <div>• 症状持续多久了</div>
+                    <div>• 是否有自己先吃一些药物</div>
+                    <div>• 最近有没有吃了或者接触到了一些特殊的东西</div>
+                </div>
+            </div>
+        {% endif %}
+
+    </div>
+
+    <!-- 输入框 -->
+    <form id="chat-form" class="input-group" onsubmit="sendMessage(event)">
+        <input name="message" id="message-input" class="form-control"
+               placeholder="请输入你的问题..." autocomplete="off" required/>
+        <span style="width: 10px"></span>
+        <button class="btn btn-primary" id="send-btn" type="submit">
+                <span id="send-content">
+                    <i class="bi bi-send me-1"></i>发送
+                </span>
+        </button>
+        <span style="width: 10px"></span>
+        {% if uid == "new" %}
+        <button type="button" class="btn btn-danger end-btn" disabled title="请先开始问诊">
+            <i class="bi bi-power me-1"></i>结束
+        </button>
+        {% else %}
+        <button type="button" class="btn btn-danger end-btn" onclick="showEndChatModal()">
+            <i class="bi bi-power me-1"></i>结束
+        </button>
+        {% endif %}
+    </form>
+
+    <!-- 第一次问诊输入无意义信息 -->
+    {% if no_sense %}
+    <div class="modal fade" id="noSenseInfo" tabindex="-1" aria-labelledby="noSenseInfoLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="noSenseInfoLabel">
+                        <i class="bi bi-info-circle me-2"></i>提示
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="关闭"></button>
+                </div>
+                <div class="modal-body">
+                    <div><b>您的回答太简略了！请您尽可能<span style="color: blue;">具体详细地描述一下您的症状</span>。例如：</b>
+                    </div>
+                    <div style="height: 10px;"></div>
+                    <div>• 身体哪里不舒服</div>
+                    <div>• 症状持续多久了</div>
+                    <div>• 是否有自己先吃一些药物</div>
+                    <div>• 最近有没有吃了或者接触到了一些特殊的东西</div>
+                </div>
+                <div class="modal-footer justify-content-center">
+                    <button type="button" class="btn btn-primary" data-bs-dismiss="modal">我知道了</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+</div>
+{% endblock %}
+
+{% block js %}
+<script src="/static/js/chat.js"></script>
+{% endblock %}

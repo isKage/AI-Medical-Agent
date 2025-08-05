@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+
+{% block title %}
+历史记录
+{% endblock %}
+
+{% block css %}
+<link href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css" rel="stylesheet">
+{% endblock %}
+
+{% block content %}
+<div class="container mt-5 pt-4" style="max-width: 1200px">
+    <!-- 表格容器 -->
+    <table id="historyTable" class="table table-striped" style="width:100%">
+        <thead>
+        <tr>
+            <th>UID</th>
+            <th>患者报告</th>
+            <th>病历记录</th>
+            <th>创建时间</th>
+            <th>操作</th>
+        </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+
+</div>
+{% endblock %}
+
+{% block js %}
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+<script src="/static/js/history.js"></script>
+{% endblock %}

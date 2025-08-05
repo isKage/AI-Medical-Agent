@@ -1,0 +1,109 @@
+.medical-report-content {
+    font-family: 'Segoe UI', sans-serif;
+    line-height: 1.6;
+    color: #2c3e50;
+    max-width: 100%;
+    word-wrap: break-word;
+}
+
+/* 标题 */
+.medical-report-content h1,
+.medical-report-content h2,
+.medical-report-content h3 {
+    font-weight: bold;
+    margin: 0.5rem 0 1rem;
+}
+
+.medical-report-content h2 {
+    font-size: 2.8rem;
+    color: #1a365d;
+    border-bottom: 2px solid #3182ce;
+    padding-bottom: 0.5rem;
+}
+
+.medical-report-content h3 {
+    font-size: 1.4rem;
+    color: #2b6cb0;
+}
+
+
+/* 段落与强调 */
+.medical-report-content p {
+    margin: 1rem 0;
+    text-align: justify;
+}
+
+.medical-report-content strong {
+    color: #1a365d;
+    background: rgba(49, 130, 206, 0.1);
+    padding: 2px 4px;
+    border-radius: 3px;
+}
+
+.medical-report-content em {
+    color: #2b6cb0;
+    font-style: italic;
+}
+
+/* 列表 */
+.medical-report-content ul {
+    padding-left: 1.5rem;
+    margin: 1rem 0;
+}
+
+.medical-report-content ul li {
+    margin-bottom: 0.5rem;
+}
+
+.medical-report-content ol {
+    padding-left: 1.5rem;
+    margin: 1rem 0;
+}
+
+/* 表格 */
+.medical-report-content table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1.5rem 0;
+    background: #fff;
+    border: 1px solid #ccc;
+}
+
+.medical-report-content th,
+.medical-report-content td {
+    padding: 0.8rem;
+    border: 1px solid #e2e8f0;
+    text-align: left;
+}
+
+/* 提示框 */
+.medical-alert {
+    margin: 1.5rem 0;
+    padding: 1rem 1.5rem;
+    border-left: 4px solid;
+    border-radius: 6px;
+}
+
+.medical-alert-info {
+    background: #ebf8ff;
+    border-color: #3182ce;
+    color: #1e4a72;
+}
+
+.medical-alert-warning {
+    background: #fffbea;
+    border-color: #d69e2e;
+    color: #744210;
+}
+
+.medical-alert-danger {
+    background: #fed7d7;
+    border-color: #e53e3e;
+    color: #742a2a;
+}
+
+.medical-alert-success {
+    background: #f0fff4;
+    border-color: #38a169;
+    color: #22543d;
+}

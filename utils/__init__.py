@@ -1,0 +1,1 @@
+from .random_uid import short_uuid

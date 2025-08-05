@@ -1,0 +1,36 @@
+# 忽略所有 __pycache__ 文件夹及其内容
+__pycache__/
+.DS_Store
+
+# 忽略所有 pyc 文件
+*.pyc
+
+# 忽略日志文件
+logs/
+*.log
+
+# 忽略本地配置文件
+local_settings.py
+main.py
+
+# 忽略虚拟环境文件夹（如果有）
+venv/
+env/
+
+# 忽略数据库迁移的缓存文件
+migrations/
+readOnlyTable/
+pyproject.toml
+
+# 忽略 drafts 文件夹（如果你不想上传草稿）
+drafts/
+
+# 忽略其他临时文件或备份
+*.swp
+*.bak
+*.tmp
+
+# 忽略更新日志
+.updated_records/
+
+README.md

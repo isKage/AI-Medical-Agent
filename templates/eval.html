@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+
+{% block title %}
+AIMGD 反馈问卷
+{% endblock %}
+
+{% block css %}
+{% endblock %}
+
+{% block content %}
+<div class="container mt-5 pt-4" style="max-width: 1200px">
+
+    <div class="card shadow-sm">
+        <div class="card-header bg-primary text-white">
+            <h4 class="mb-0">
+                {% if mode == "doctor" %}
+                医生端评分
+                {% else %}
+                患者端评分
+                {% endif %}
+            </h4>
+        </div>
+        <div class="card-body">
+
+            <form method="POST" data-mode="{{ mode }}" data-uid="{{ uid }}" id="eval-form">
+
+                {% if mode == "doctor" %}
+                <p class="text-muted">
+                    针对 <b style="color: darkblue"> SOAP 病历</b> ，请对每一项进行打分（1-5），
+                    1 代表 <u style="color: black">非常不符合/不满意/不认可</u> ；
+                    5 代表 <u style="color: black">非常符合/满意/认可</u> 。
+                </p>
+                {% else %}
+                <p class="text-muted">
+                    针对 <b style="color: darkblue">问诊对话和诊断报告</b> ，请对每一项进行打分（1-5），
+                    1 代表 <u style="color: black">非常不符合/不满意/不认可</u> ；
+                    5 代表 <u style="color: black">非常符合/满意/认可</u> 。
+                </p>
+                {% endif %}
+
+                <ul class="list-group mb-3">
+                    {% for i, q in fields %}
+                    <li class="list-group-item">
+                        <div class="row align-items-center">
+
+                            <!-- 左侧问题描述 -->
+                            <div class="col-md-6 col-sm-12 fw-semibold mb-2 mb-md-0">
+                                {{ q }}
+                            </div>
+
+                            <!-- 右侧评分区 -->
+                            <div class="col-md-6 col-sm-12">
+                                <!-- 顶部标签 -->
+                                <div class="row text-center mb-1">
+                                    <div class="col">非常不符合</div>
+                                    <div class="col"></div>
+                                    <div class="col"></div>
+                                    <div class="col"></div>
+                                    <div class="col">非常符合</div>
+                                </div>
+
+                                <!-- 评分按钮 -->
+                                <div class="row text-center">
+                                    {% for j in range(1, 6) %}
+                                    <div class="col d-flex justify-content-center align-items-center">
+                                        <div style="width: 40px; height: 40px">
+                                            <input type="radio" class="btn-check" name="q{{ i }}" id="q{{ i }}_{{ j }}"
+                                                   value="{{ j }}"
+                                                   {% if existing_scores and existing_scores[i]|int== j %}
+                                                   checked
+                                                   {% endif %}
+                                                   autocomplete="off"
+                                                   required>
+                                            <label class="btn btn-outline-primary w-100" for="q{{ i }}_{{ j }}">{{ j
+                                                }}</label>
+
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+
+                            </div>
+                        </div>
+                    </li>
+                    {% endfor %}
+                </ul>
+
+                <div class="mb-3">
+                    <label class="form-label">最满意的地方</label>
+                    <textarea class="form-control" name="positive" rows="2">{{ existing_scores[-2] if existing_scores|length >= 2 }}</textarea>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">最需改进的地方</label>
+                    <textarea class="form-control" name="negative" rows="2">{{ existing_scores[-1] if existing_scores|length >= 2 }}</textarea>
+                </div>
+
+                <button type="submit" class="btn btn-primary">提交反馈</button>
+            </form>
+
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block js %}
+<script>
+</script>
+<script src="/static/js/eval.js"></script>
+{% endblock %}

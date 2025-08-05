@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+
+{% block title %}
+SOAP 病历
+{% endblock %}
+
+{% block css %}
+<link rel="stylesheet" href="/static/css/markdown.css">
+{% endblock %}
+
+{% block content %}
+<div class="container mt-5 pt-4" style="max-width: 1200px">
+    <!-- Card 1 -->
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <div style="font-weight: bold">
+                <i class="bi bi-check fs-5"></i>
+                初步诊断
+            </div>
+            <div>
+                UID:
+                <span class="card-text" id="uidText" style="color: blue; font-weight: bold">
+                    {{ uid }}
+                </span>
+                <span id="copyTip">已复制</span>
+            </div>
+
+        </div>
+        <div class="card-body">
+            <div class="medical-report-content">
+                {{ initial | safe }}
+            </div>
+        </div>
+    </div>
+
+    <br>
+
+    <!-- 按钮 -->
+    <div class="action-buttons">
+        <button id="generateBtn" class="btn btn-generate btn-primary">
+            <i class="fas fa-magic"></i> 生成病历
+        </button>
+        <a href="/eval/doctor/{{ uid }}">
+            <button id="evaluateBtn" class="btn btn-evaluate btn-primary" style="display: none;">
+                <i class="fas fa-star"></i> 评价病历
+            </button>
+        </a>
+    </div>
+
+    <br>
+
+    <!-- Report Content -->
+    <div id="noteStatus" class="medical-alert medical-alert-warning" style="display: none">
+        暂无诊断结果，请点击【生成病历】按钮开始生成
+    </div>
+
+    <div id="loadingSpinner" style="display: none; text-align:center;">
+        <div class="spinner-border text-primary" role="status">
+        </div>
+        <p>病历生成中，请稍候...</p>
+    </div>
+
+    <div id="noteContainer" style="display: none;">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <div style="font-weight: bold;">
+                    <i class="bi bi-table fs-5"></i>
+                    SOAP 临床病历记录
+                </div>
+                <button id="regenerateBtn" class="btn btn-generate"
+                        style="display: none; background-color: white; color:grey; border-color: deepskyblue">
+                    <i class="fas fa-redo"></i> 重新生成
+                </button>
+            </div>
+            <div class="card-body">
+                <div class="card-text">
+                    <div id="noteContent" class="medical-report-content"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}
+
+{% block js %}
+<script src="/static/js/note.js"></script>
+{% endblock %}

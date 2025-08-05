@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+
+{% block title %}
+管理员登录
+{% endblock %}
+
+{% block css %}
+{% endblock %}
+
+{% block content %}
+<div class="container mt-5 pt-4">
+
+    <div class="container d-flex justify-content-center">
+        <div class="login-container" style="width: 500px;font-size: 20px">
+            <h2 class="text-center mb-4"><i class="bi bi-person-circle me-2"></i>管理员登录</h2>
+
+            {% if error %}
+            <div class="alert alert-danger" role="alert">
+                {{ error }}
+            </div>
+            {% endif %}
+
+            <form method="post">
+                <div class="form-wrapper">
+                    <div class="mb-3">
+                        <label for="name" class="form-label">用户名</label>
+                        <input type="text" class="form-control" id="name" name="name" placeholder="请输入用户名"
+                               autocomplete="off">
+                    </div>
+                    <div class="mb-3">
+                        <label for="password" class="form-label">密码</label>
+                        <input type="password" class="form-control" id="password" name="password"
+                               placeholder="请输入密码" autocomplete="off">
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-login">
+                        <i class="bi bi-box-arrow-in-right me-1"></i> 登录
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+</div>
+{% endblock %}
+
+{% block js %}
+{% endblock %}
