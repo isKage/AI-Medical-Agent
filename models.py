@@ -21,6 +21,7 @@ class PIM(Model):
 
     addition = fields.CharField(max_length=60, default="")  # 患者补充内容 "..."
 
+    symptom_opt = fields.CharField(max_length=30, default="")  # 辅助：最优症状
     delta_ieg = fields.JSONField(default=list)  # 辅助：熵增的变化率 [0.001, 0.004, ...]
     is_related = fields.BooleanField(default=True)  # 辅助：患者当前轮次的回答是否与问题相关
     unrelated_count = fields.IntField(default=0)  # 辅助：患者不相关回答的次数

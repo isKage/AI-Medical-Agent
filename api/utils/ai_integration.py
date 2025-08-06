@@ -11,7 +11,7 @@ from dashscope import Application
 from http import HTTPStatus
 
 import settings
-from settings import API_KEY, PIM_01_APP_ID, PIM_02_APP_ID, PIM_03_APP_ID, PSG_APP_ID, CDG_01_APP_ID, CDG_02_APP_ID
+from settings import API_KEY, PIM_01_APP_ID, PIM_02_APP_ID, PIM_03_APP_ID, PSG_APP_ID, CDG_01_APP_ID, CDG_02_APP_ID, PIM_02_APP_ID_PLUS
 
 
 class AIGenerator:
@@ -58,11 +58,18 @@ class AIGenerator:
                 raise e
 
     @classmethod
-    async def pim02GenerateQuestion(cls, disease_name_list: List[str], symptom_name: str, qa: List[Dict[str, str]]) -> str:
+    async def pim02GenerateQuestion(
+            cls,
+            disease_name_list: List[str],
+            symptom_name: str,
+            known_symptom_name_list: List[str],
+            qa: List[Dict[str, str]]
+    ) -> str:
         """
         生成问题
-        :param disease_name_list:
-        :param symptom_name:
+        :param disease_name_list: 相关疾病
+        :param symptom_name: 待问症状
+        :param known_symptom_name_list: 已经提问过的症状
         :param qa: 问诊对话内容 [] 或 [{"role": "system", "content": "..."}, {"role": "user", "content": "..."}, ...]
         :return: 问题生成 "..."
         """
@@ -70,7 +77,8 @@ class AIGenerator:
             {
                 "role": "user",
                 "content":
-                    f"症状：{symptom_name}\n"
+                    f"**针对症状：{symptom_name} 提问**\n"
+                    f"已经提问过的症状：{known_symptom_name_list}\n"
                     f"可能罹患的几种疾病：{disease_name_list}\n"
                     f"之前的对话内容：\n{qa}\n"
             }
@@ -82,6 +90,49 @@ class AIGenerator:
                 response = await cls._call_application(messages, PIM_02_APP_ID)  # 发送请求
                 if response.status_code == HTTPStatus.OK:
                     return response.output.text.strip()
+                else:
+                    if attempt < max_retries - 1:
+                        await asyncio.sleep(0.5)  # 等待 0.5 秒
+                        continue
+                    error_info = cls._error_info_http(response, "PIM02")
+                    raise Exception(error_info + f" (Attempt {attempt + 1})")
+            except Exception as e:
+                raise e
+
+    @classmethod
+    async def pim02GenerateQuestionPLUS(
+            cls,
+            disease_name_list: List[str],
+            symptom_name: str,
+            known_symptom_name_list: List[str],
+            qa: List[Dict[str, str]]
+    ) -> Dict[str, str | bool]:
+        """
+        生成问题 PLUS
+        :param disease_name_list: 相关疾病
+        :param symptom_name: 待问症状
+        :param known_symptom_name_list: 已经提问过的症状
+        :param qa: 问诊对话内容 [] 或 [{"role": "system", "content": "..."}, {"role": "user", "content": "..."}, ...]
+        :return: 问题生成 {"skip": True | False, "question": "..."}
+        """
+        messages = [
+            {
+                "role": "user",
+                "content":
+                    f"针对症状：{symptom_name} 提问\n"
+                    f"已经提问过的症状：{known_symptom_name_list}\n"
+                    f"可能罹患的几种疾病：{disease_name_list}\n"
+                    f"之前的对话内容：\n{qa}\n"
+            }
+        ]
+        # 重试机制
+        max_retries = 3
+        for attempt in range(max_retries):
+            try:
+                response = await cls._call_application(messages, PIM_02_APP_ID_PLUS)  # 发送请求
+                if response.status_code == HTTPStatus.OK:
+                    skip_question_dict = cls._getJsonResponse(response.output.text)
+                    return skip_question_dict
                 else:
                     if attempt < max_retries - 1:
                         await asyncio.sleep(0.5)  # 等待 0.5 秒
@@ -104,7 +155,7 @@ class AIGenerator:
             {
                 "role": "user",
                 "content":
-                    f"症状：{symptom_name}\n"
+                    f"针对症状：{symptom_name} 提问\n"
                     f"医生提问：{question}\n"
                     f"患者回答：{answer}\n"
             }

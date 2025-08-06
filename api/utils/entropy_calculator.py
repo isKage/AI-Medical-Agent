@@ -7,10 +7,6 @@ import numpy as np
 import pandas as pd
 from typing import Dict, List, Tuple, Any, Union, Optional
 
-# ROOT_DIR = pathlib.Path(__file__).parent.parent.parent.absolute()
-# if ROOT_DIR not in sys.path:
-#     sys.path.insert(0, ROOT_DIR)
-
 from models import DiseaseProb, MedicalKnowledge, SymptomProb
 
 
@@ -72,9 +68,12 @@ class EntropyCalculator:
             H_occ[s] = cls._H(p_d_s[:, i], sd_matrix[:, i] > cls.epsilon)
             H_nok[s] = cls._H(p_d_not_s[:, i], sd_matrix[:, i] > cls.epsilon)
         for i, symptom_name in enumerate(symptom_name_list):
-            H_cond = H_occ[symptom_name] * p_s[i] + H_nok[symptom_name] * (1 - p_s[i])
-            symptom_IEG[symptom_name] = float(abs(H0 - H_cond) / max(abs(H0), cls.epsilon))
-
+            # H_cond = H_occ[symptom_name] * p_s[i] + H_nok[symptom_name] * (1 - p_s[i])
+            # H_cond = H_occ[symptom_name] + H_nok[symptom_name]
+            symptom_IEG[symptom_name] = min(
+                float(abs(H0 - H_occ[symptom_name]) / max(abs(H0), cls.epsilon)),
+                float(abs(H0 - H_nok[symptom_name]) / max(abs(H0), cls.epsilon))
+            )
         return symptom_IEG
 
     @classmethod
@@ -167,18 +166,6 @@ class EntropyCalculator:
             updated_disease_prob = {k: v / sum_p for k, v in new_disease_prob_dict.items()}
         return cls._temperature_scaling(updated_disease_prob, temperature=5.0)
 
-        # for idx, symptom_name in enumerate(symptom_name_list):
-        #     if symptom_name in new_known_symptom_dict:
-        #         break
-        # if flag is True:  # True
-        #     p_temp = np.clip(p_d_s[:, idx], cls.MIN_PROB_THRESHOLD, None)
-        #     p_temp = cls._safe_normalize(p_temp)
-        #     return {d_name: float(p_temp[i]) for i, d_name in enumerate(disease_name_list)}
-        # elif flag is False:
-        #     p_temp = np.clip(p_d_not_s[:, idx], cls.MIN_PROB_THRESHOLD, None)
-        #     p_temp = cls._safe_normalize(p_temp)
-        #     return {d_name: float(p_temp[i]) for i, d_name in enumerate(disease_name_list)}
-
     @classmethod
     async def SDInfo(
             cls,
@@ -198,27 +185,6 @@ class EntropyCalculator:
         symptom_prob_dict, sd_relation = await cls.getSymptomProbDict_SDRelation(diseases, known_symptom_dict)
 
         return None, symptom_prob_dict, sd_relation
-
-    # @classmethod
-    # async def getDiseaseProbDict(cls, diseases: Union[List[str], Dict[str, float]]) -> Dict[str, float]:
-    #     """获取疾病概率字典"""
-    #     disease_name_list = list(diseases.keys()) if isinstance(diseases, dict) else diseases
-    #     if isinstance(diseases, dict):
-    #         diseases_prob_dict = diseases
-    #     else:
-    #         disease_prob_dict_list = await DiseaseProb.filter(disease__in=disease_name_list).values("disease", "probability")
-    #         # [{'disease': 'xxx', 'probability': 0.1}, {'disease': 'xxx', 'probability': 0.1}, ...]
-    #         diseases_prob_dict = {}
-    #         for item in disease_prob_dict_list:
-    #             _disease_name = item.get("disease")
-    #             _disease_prob = item.get("probability")
-    #             diseases_prob_dict[_disease_name] = _disease_prob
-    #     sum_p = sum(diseases_prob_dict.values())
-    #     if sum_p < cls.epsilon:
-    #         sum_p = 1
-    #         diseases_prob_dict = {d: (p + cls.MIN_PROB_THRESHOLD) / sum_p for d, p in diseases_prob_dict.items()}
-    #     diseases_prob_dict = {d: p / sum_p for d, p in diseases_prob_dict.items()}
-    #     return diseases_prob_dict
 
     @classmethod
     async def getSymptomProbDict_SDRelation(
@@ -339,8 +305,10 @@ class EntropyCalculator:
                 np.log(safe_pB[cols])
         )
 
-        max_log_p_d_s = np.max(log_pAunderB, axis=1, keepdims=True)
-        pAunderB = np.where(mask, np.exp(log_pAunderB - max_log_p_d_s), 0.0)
+        # max_log_p_d_s = np.max(log_pAunderB, axis=1, keepdims=True)
+        # pAunderB = np.where(mask, np.exp(log_pAunderB - max_log_p_d_s), 0.0)
+        pAunderB = np.where(mask, np.exp(log_pAunderB), 0.0)
+        pAunderB = pAunderB / np.sum(pAunderB)
 
         return pAunderB
 
@@ -350,6 +318,6 @@ class EntropyCalculator:
         disease_name = list(disease_prob.keys())
         p = np.array(list(disease_prob.values()))
 
-        p_scaled = p ** (1 / temperature)  # [P(D_i)]^T
+        p_scaled = p ** (1 / temperature)  # [P(D_i)]^(1/T)
         p_scaled /= p_scaled.sum()
         return dict(zip(disease_name, p_scaled))

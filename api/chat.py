@@ -13,8 +13,9 @@ api_chat = APIRouter()
 templates_path = os.path.join(pathlib.Path(__file__).parent.parent, "templates")
 templates = Jinja2Templates(directory=templates_path)
 
-DELTA_IEG_CONVERGENCE = 2  # 收敛次数
-ROUND_LIMIT = 10  # 对话次数限制
+DELTA_IEG_CONVERGENCE = 3  # 收敛次数
+ROUND_MAX = 16  # 对话次数限制
+ROUND_MIN = 10  # 对话次数限制
 MAX_UNRELATED_RETRIES = 2  # 无关回答最多重复次数
 
 
@@ -106,9 +107,10 @@ async def sendChat(uid: str, message: str = Form(...)):
         pim.ieg = [symptom_IEG]  # 添加 IEG
 
         symptom_name, _ = EntropyCalculator.max_ieg(symptom_IEG)
+        pim.symptom_opt = symptom_name
 
         """ PIM02 生成问题"""
-        question = await AIGenerator.pim02GenerateQuestion(disease_name_list, symptom_name, qa_messages)
+        question = await AIGenerator.pim02GenerateQuestion(disease_name_list, symptom_name, [], qa_messages)
 
         ai_message = {"role": "system", "content": question}
         qa_messages.append(ai_message)
@@ -140,7 +142,8 @@ async def sendChat(uid: str, message: str = Form(...)):
             "redirect_url": "/chat/new"
         })
 
-    symptom_name, _ = EntropyCalculator.max_ieg(pim.ieg[-1])
+    # symptom_name, _ = EntropyCalculator.max_ieg(pim.ieg[-1])
+    symptom_name = pim.symptom_opt
 
     # 问诊对话内容
     user_message = {"role": "user", "content": message}  # 添加用户消息到历史记录
@@ -210,7 +213,7 @@ async def sendChat(uid: str, message: str = Form(...)):
         return JSONResponse({
             "status": "endChat"
         })
-    if len(qa_messages) / 2 > ROUND_LIMIT:  # 轮次要求
+    if len(qa_messages) / 2 > ROUND_MAX:  # 轮次要求
         return JSONResponse({
             "status": "endChat"
         })
@@ -224,6 +227,7 @@ async def sendChat(uid: str, message: str = Form(...)):
     # 计算最新 IEG
     symptom_IEG = await EntropyCalculator.calculateIEG(disease_prob_dict, symptom_dict)
     symptom_name, max_ieg_value = EntropyCalculator.max_ieg(symptom_IEG)
+    pim.symptom_opt = symptom_name  # 更新 max_ieg symptom
     ieg_temp = pim.ieg
     ieg_temp.append(symptom_IEG)
 
@@ -235,17 +239,28 @@ async def sendChat(uid: str, message: str = Form(...)):
 
     await pim.save()  # 结束前先保存
 
-    """结束标志 2 """
-    should_stop = PIMService.isConvergence(delta_ieg_list, DELTA_IEG_CONVERGENCE)  # 收敛次数
-    if should_stop:
-        print("2")
-        return JSONResponse({
-            "status": "endChat"
-        })
-
+    # """ PIM02 生成问题"""
+    # disease_name_list = list(disease_prob_dict.keys())
+    # known_symptom_name_list = list(symptom_dict.keys())
+    # question = await AIGenerator.pim02GenerateQuestion(disease_name_list, symptom_name, known_symptom_name_list, qa_messages)
     """ PIM02 生成问题"""
-    disease_name_list = list(disease_prob_dict.keys())
-    question = await AIGenerator.pim02GenerateQuestion(disease_name_list, symptom_name, qa_messages)
+    while 1:
+        disease_name_list = list(disease_prob_dict.keys())
+        known_symptom_name_list = list(symptom_dict.keys())
+        skip_question = await AIGenerator.pim02GenerateQuestionPLUS(disease_name_list, symptom_name, known_symptom_name_list, qa_messages)
+        f = skip_question.get('skip', True)
+        # 测试 debug
+        if symptom_name in ["食欲不振", "面色苍白", "血压下降"]:
+            f = True
+        if not f:
+            break
+        symptom_dict[symptom_name] = None  # 跳过 symptom_name
+        # 重新计算
+        symptom_IEG = await EntropyCalculator.calculateIEG(disease_prob_dict, symptom_dict)
+        symptom_name, max_ieg_value = EntropyCalculator.max_ieg(symptom_IEG)
+        pim.symptom_opt = symptom_name  # 更新 max_ieg symptom
+        ieg_temp.append(symptom_IEG)
+    question = skip_question.get('question', '')
 
     # 添加问诊对话
     ai_message = {"role": "system", "content": question}
@@ -253,6 +268,16 @@ async def sendChat(uid: str, message: str = Form(...)):
 
     pim.qa_messages = qa_messages
     await pim.save()
+
+    """结束标志 2 """
+    if len(qa_messages) / 2 < ROUND_MIN:  # 最少轮次限制
+        should_stop = False
+    else:
+        should_stop = PIMService.isConvergence(delta_ieg_list, DELTA_IEG_CONVERGENCE)  # 收敛次数
+    if should_stop:
+        return JSONResponse({
+            "status": "endChat"
+        })
 
     # 返回JSON响应
     return JSONResponse({
