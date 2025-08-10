@@ -28,3 +28,5 @@ if not os.path.exists(log_dir):
     os.makedirs(log_dir)
 accesslog = "./logs/gunicorn_access.log"
 errorlog = "./logs/gunicorn_error.log"
+
+timeout = 240  # 等待 4 分钟

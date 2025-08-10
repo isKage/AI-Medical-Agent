@@ -13,9 +13,9 @@ api_chat = APIRouter()
 templates_path = os.path.join(pathlib.Path(__file__).parent.parent, "templates")
 templates = Jinja2Templates(directory=templates_path)
 
-DELTA_IEG_CONVERGENCE = 3  # 收敛次数
-ROUND_MAX = 16  # 对话次数限制
-ROUND_MIN = 10  # 对话次数限制
+DELTA_IEG_CONVERGENCE = 2  # 收敛次数
+ROUND_MAX = 15  # 对话次数限制
+ROUND_MIN = 9  # 对话次数限制
 MAX_UNRELATED_RETRIES = 2  # 无关回答最多重复次数
 
 

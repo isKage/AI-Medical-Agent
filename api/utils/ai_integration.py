@@ -11,7 +11,8 @@ from dashscope import Application
 from http import HTTPStatus
 
 import settings
-from settings import API_KEY, PIM_01_APP_ID, PIM_02_APP_ID, PIM_03_APP_ID, PSG_APP_ID, CDG_01_APP_ID, CDG_02_APP_ID, PIM_02_APP_ID_PLUS
+from settings import API_KEY, PIM_01_APP_ID, PIM_02_APP_ID, PIM_03_APP_ID, PSG_APP_ID, CDG_01_APP_ID, CDG_02_APP_ID, PIM_02_APP_ID_PLUS, \
+    EXPERIMENT_APP_ID
 
 
 class AIGenerator:
@@ -324,6 +325,60 @@ class AIGenerator:
                         await asyncio.sleep(0.5)  # 等待 0.5 秒
                         continue
                     error_info = cls._error_info_http(response, "CDG02")
+                    raise Exception(error_info + f" (Attempt {attempt + 1})")
+            except Exception as e:
+                raise e
+
+    # ------------------ EXPERIMENT ------------------
+    @classmethod
+    async def experimentExtractSymptom(
+            cls,
+            desc: str,
+            real_symptom_dict: Dict[str, str | bool | None],
+            required_symptom_list: List[str]
+    ) -> Dict[str, bool | None]:
+        """
+        根据 real_symptom_dict 生成本系统的症状字典
+        :param desc: 患者主诉
+        :param real_symptom_dict: 真实症状发生与否字典 {'S1': True, ...} or {'S1': '是'}
+        :param required_symptom_list: 需要询问的症状名列表 ['', ...]
+        :return: 需要询问的症状发生与否字典 {'SA': True, 'SB': False, 'SC': None}
+        """
+        # 检查 real_symptom_dict
+        symptom_ori = {}
+        v_list = list(real_symptom_dict.values())
+        if isinstance(v_list[0], bool):
+            # 转换格式
+            for k, v in real_symptom_dict.items():
+                if v is True:
+                    symptom_ori[k] = "是"
+                elif v is False:
+                    symptom_ori[k] = "否"
+                else:
+                    symptom_ori[k] = "尚不清楚"
+        else:
+            symptom_ori = real_symptom_dict
+
+        user_content = (f"【提供的信息】\n患者主诉: **小儿疾病，患者为儿童。**{desc}\n"
+                        f"真实的症状发生与否字典:\n{symptom_ori}\n"
+                        f"\n【医生询问的症状】\n{required_symptom_list}")
+
+        messages = [
+            {"role": "user", "content": user_content}
+        ]
+        # 重试机制
+        max_retries = 2
+        for attempt in range(max_retries):
+            try:
+                response = await cls._call_application(messages, EXPERIMENT_APP_ID)
+                if response.status_code == HTTPStatus.OK:
+                    symptom_dict = cls._getJsonResponse(response.output.text)
+                    return symptom_dict
+                else:
+                    if attempt < max_retries - 1:
+                        await asyncio.sleep(0.5)  # 等待 0.5 秒
+                        continue
+                    error_info = cls._error_info_http(response, "EXPERIMENT")
                     raise Exception(error_info + f" (Attempt {attempt + 1})")
             except Exception as e:
                 raise e

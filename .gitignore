@@ -34,3 +34,7 @@ drafts/
 .updated_records/
 
 README.md
+
+# 实验
+Experiment/
+api/experiment.py

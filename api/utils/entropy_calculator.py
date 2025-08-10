@@ -80,7 +80,7 @@ class EntropyCalculator:
     async def updateDiseaseProb(
             cls,
             disease_prob_dict: Dict[str, float],
-            new_known_symptom_dict: Optional[Dict[str, bool | None]],
+            new_known_symptom_dict: Optional[Dict[str, bool | None]] = None,
             known_symptom_dict: Optional[Dict[str, bool | None]] = None,
     ):
         """
@@ -127,8 +127,9 @@ class EntropyCalculator:
         # p_d_not_s = cls._mask_calculate_bayes(sd_matrix == 1, 1 - p_s_d, p_d, p_s)
 
         # Step 7: 返回最新疾病概率
-        (new_symptom_name, flag), = new_known_symptom_dict.items()
-        known_symptom_dict[new_symptom_name] = flag
+        if new_known_symptom_dict is not None:
+            (new_symptom_name, flag), = new_known_symptom_dict.items()
+            known_symptom_dict[new_symptom_name] = flag
 
         SetTrue = []
         SetFalse = []
