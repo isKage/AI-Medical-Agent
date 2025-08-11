@@ -14,8 +14,8 @@ templates_path = os.path.join(pathlib.Path(__file__).parent.parent, "templates")
 templates = Jinja2Templates(directory=templates_path)
 
 DELTA_IEG_CONVERGENCE = 2  # 收敛次数
-ROUND_MAX = 15  # 对话次数限制
-ROUND_MIN = 9  # 对话次数限制
+ROUND_MAX = 12  # 对话次数限制
+ROUND_MIN = 8  # 对话次数限制
 MAX_UNRELATED_RETRIES = 2  # 无关回答最多重复次数
 
 
@@ -322,19 +322,21 @@ async def goToAddition(uid: str, addition: str = Form(...)):
 
     # 等待初步报告生成
     disease_and_reason = await AIGenerator.cdg01GenerateInitial(disease_prob_dict, qa_messages, symptoms, patient_addition)
-    # {"disease": "最可能的疾病名", "reason": "诊断依据和推理过程"}
+    # {"disease": {"疾病1": 0.4, ...}, "reason": "诊断依据和推理过程"}
     await pim.save()
 
     """CDG 01 Initial"""
-    disease_opt = disease_and_reason.get("disease", "")
+    disease_opt_dict = disease_and_reason.get("disease", {})
+    disease_opt, _ = EntropyCalculator.max_ieg(disease_opt_dict)
     reason = disease_and_reason.get("reason", "")
     try:
         cdg = await CDG.get(uid=uid)
         cdg.disease_opt = disease_opt
+        cdg.disease_opt_dict = disease_opt_dict
         cdg.initial = reason
         await cdg.save()
     except DoesNotExist:
-        cdg = await CDG.create(uid=uid, pim=pim, disease_opt=disease_opt, initial=reason)
+        cdg = await CDG.create(uid=uid, pim=pim, disease_opt=disease_opt, disease_opt_dict=disease_opt_dict, initial=reason)
 
     """PSG Report ORM create"""
     try:

@@ -59,6 +59,8 @@ class CDG(Model):
     disease_opt = fields.CharField(max_length=32, default="")  # 最可能疾病名
     soap = fields.TextField(default="")  # 病历记录（较长），markdown 语法
 
+    disease_opt_dict = fields.JSONField(default=dict)  # 最可能疾病字典 {'D1': 0.3, ...}
+
     created_at = fields.DatetimeField(auto_now_add=True)
 
     class Meta:

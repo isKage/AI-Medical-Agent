@@ -81,8 +81,10 @@ async def generateSOAP(uid: str):
         })
 
     disease_prob_dict = pim.diseases[-1]
-    disease_prob_dict = PIMService.top_k_items(disease_prob_dict, 5)
-    disease_opt = cdg.disease_opt
+    # disease_prob_dict = PIMService.top_k_items(disease_prob_dict, 5)
+
+    disease_opt_dict = cdg.disease_opt_dict
+
     initial_note = cdg.initial
     qa_messages = pim.qa_messages
     symptoms_ = pim.symptoms  # {'S': Bool | None}
@@ -96,12 +98,12 @@ async def generateSOAP(uid: str):
             symptoms[k] = "未知"
     # {'S': "是" | "否" | "未知"}
     patient_addition = pim.addition
-    disease_name_list = list(disease_prob_dict.keys())
+    disease_name_list = list(disease_opt_dict.keys())
     knowledge_addition_list = await PIMService.knowledge_query(disease_name_list)
 
     table_str = await PIMService.tableStr(disease_name_list, symptoms_)
 
-    note = await AIGenerator.cdg02GenerateSOAP(disease_prob_dict, disease_opt, initial_note, qa_messages, symptoms, patient_addition,
+    note = await AIGenerator.cdg02GenerateSOAP(disease_prob_dict, disease_opt_dict, initial_note, qa_messages, symptoms, patient_addition,
                                                knowledge_addition_list, table_str)
     note_html = markdown.markdown(note, extensions=['extra', 'markdown.extensions.tables'])
 

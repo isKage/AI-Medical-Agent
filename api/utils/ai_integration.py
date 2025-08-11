@@ -12,7 +12,7 @@ from http import HTTPStatus
 
 import settings
 from settings import API_KEY, PIM_01_APP_ID, PIM_02_APP_ID, PIM_03_APP_ID, PSG_APP_ID, CDG_01_APP_ID, CDG_02_APP_ID, PIM_02_APP_ID_PLUS, \
-    EXPERIMENT_APP_ID
+    EXPERIMENT_01_APP_ID, EXPERIMENT_02_APP_ID
 
 
 class AIGenerator:
@@ -268,19 +268,22 @@ class AIGenerator:
                     raise Exception(error_info + f" (Attempt {attempt + 1})")
             except Exception as e:
                 raise e
-        # 验证 disease_opt
-        selected_disease = disease_and_reason.get("disease", "")
-        if selected_disease not in disease_name_list:
-            # 失败时自动选择概率最高的疾病
-            disease_opt = max(disease_prob_dict, key=disease_and_reason.get)
-            disease_and_reason["disease"] = disease_opt
+        # 验证 disease_opt -> disease_opt_dict: {'D1': prob, ...}
+        selected_disease = disease_and_reason.get("disease", [])
+        disease_opt_dict = {}
+        for d in selected_disease:
+            if d in disease_name_list:
+                disease_opt_dict[d] = disease_prob_dict[d]
+        if len(disease_opt_dict) == 0:
+            disease_opt_dict = disease_prob_dict
+        disease_and_reason["disease"] = disease_opt_dict
         return disease_and_reason
 
     @classmethod
     async def cdg02GenerateSOAP(
             cls,
             disease_prob_dict: Dict[str, float],
-            disease_opt: str,
+            disease_opt_dict: Dict[str, float],
             initial_note: str,
             qa_messages: List[Dict[str, str]],
             symptoms: Dict[str, bool | None | str],
@@ -291,7 +294,7 @@ class AIGenerator:
         """
         SOAP 病历生成
         :param disease_prob_dict: top-k 疾病概率 {'D1': 0.3, 'D2': 0.2, 'D3': 0.1}
-        :param disease_opt: 最可能疾病 'Di'
+        :param disease_opt_dict: 最可能疾病字典 {'D1': 0.3, 'D2': 0.2, 'D3': 0.1}
         :param initial_note: 初步诊断推理 "..."
         :param qa_messages: 问诊对话内容 [{'role': 'system', 'content': '...'}, {'role': 'user', 'content': '...'}, ...]
         :param symptoms: 是否出现某些症状的字典 {'S1': True, 'S2': False, 'S3': None}
@@ -302,7 +305,7 @@ class AIGenerator:
         """
         disease_name_list = list(disease_prob_dict.keys())
         user_content = (f"- 可能疾病列表：{disease_name_list}\n"
-                        f"- 最可能疾病：{disease_opt}\n"
+                        f"- 最可能疾病：{disease_opt_dict}\n"
                         f"- 初步诊断依据和推理过程：\n{initial_note}\n"
                         f"- 问诊对话内容：\n{qa_messages}\n"
                         f"- 是否出现某些症状的字典：\n{symptoms}\n"
@@ -331,7 +334,7 @@ class AIGenerator:
 
     # ------------------ EXPERIMENT ------------------
     @classmethod
-    async def experimentExtractSymptom(
+    async def experiment01ExtractSymptom(
             cls,
             desc: str,
             real_symptom_dict: Dict[str, str | bool | None],
@@ -370,7 +373,7 @@ class AIGenerator:
         max_retries = 2
         for attempt in range(max_retries):
             try:
-                response = await cls._call_application(messages, EXPERIMENT_APP_ID)
+                response = await cls._call_application(messages, EXPERIMENT_01_APP_ID)
                 if response.status_code == HTTPStatus.OK:
                     symptom_dict = cls._getJsonResponse(response.output.text)
                     return symptom_dict
@@ -378,7 +381,65 @@ class AIGenerator:
                     if attempt < max_retries - 1:
                         await asyncio.sleep(0.5)  # 等待 0.5 秒
                         continue
-                    error_info = cls._error_info_http(response, "EXPERIMENT")
+                    error_info = cls._error_info_http(response, "EXPERIMENT01")
+                    raise Exception(error_info + f" (Attempt {attempt + 1})")
+            except Exception as e:
+                raise e
+
+    @classmethod
+    async def experiment02SelectDisease(
+            cls,
+            desc: str,
+            symptom_dict: Dict[str, str | bool | None],
+            disease_prob_dict: Dict[str, float]
+    ) -> Dict[str, float]:
+        """
+        预测前 k 个疾病
+        :param desc: 初步描述 "..."
+        :param symptom_dict: 症状 {'S1': True, ...} or {'S1': '是'}
+        :param disease_prob_dict: 疾病概率 {'D1': 0.3, 'D2': 0.4, ...}
+        :return: {'D1': 0.3, 'D2': 0.4, ...} k 个
+        """
+        symptoms = {}
+        v_list = list(symptom_dict.values())
+        if isinstance(v_list[0], bool):
+            # 转换格式
+            for k, v in symptom_dict.items():
+                if v is True:
+                    symptoms[k] = "是"
+                elif v is False:
+                    symptoms[k] = "否"
+                else:
+                    symptoms[k] = "尚不清楚"
+        else:
+            symptoms = symptom_dict
+
+        user_content = (f"患者主诉: **小儿疾病，患者为儿童。**{desc}\n"
+                        f"症状发生与否字典: \n{symptoms}\n"
+                        f"预测的疾病概率: \n{disease_prob_dict}\n")
+        messages = [
+            {"role": "user", "content": user_content}
+        ]
+        # 重试机制
+        max_retries = 2
+        for attempt in range(max_retries):
+            try:
+                response = await cls._call_application(messages, EXPERIMENT_02_APP_ID)
+                if response.status_code == HTTPStatus.OK:
+                    disease_name_list_dict = cls._getJsonResponse(response.output.text)
+                    disease_name_list = disease_name_list_dict.get("disease", [])
+                    new_disease_prob_dict = {}
+                    for d_name in disease_name_list:
+                        if d_name in disease_prob_dict:
+                            new_disease_prob_dict[d_name] = disease_prob_dict[d_name]
+                    if len(new_disease_prob_dict) == 0:
+                        return disease_prob_dict
+                    return new_disease_prob_dict
+                else:
+                    if attempt < max_retries - 1:
+                        await asyncio.sleep(0.5)  # 等待 0.5 秒
+                        continue
+                    error_info = cls._error_info_http(response, "EXPERIMENT02")
                     raise Exception(error_info + f" (Attempt {attempt + 1})")
             except Exception as e:
                 raise e

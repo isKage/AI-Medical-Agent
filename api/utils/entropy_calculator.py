@@ -53,6 +53,11 @@ class EntropyCalculator:
         row_sum_matrix = after_mul_p_s.sum(axis=1, keepdims=True)  # shape = (N_S, 1)
         row_sum_matrix = np.where(row_sum_matrix == 0, cls.epsilon, row_sum_matrix)  # 防止除以 0
         p_s_d = after_mul_p_s / row_sum_matrix  # P(S_k | D_l) shape = (N, N_S)
+        p_s_d = np.where(
+            (sd_matrix != 0) & (p_s_d < 0.001),  # 最小非 0 至少为 MIN_PROB_THRESHOLD
+            cls.MIN_PROB_THRESHOLD,
+            p_s_d  # 否则保持原值
+        )
 
         # Step 6.1: P(D_l | S_k)
         p_d_s = cls._mask_calculate_bayes(sd_matrix == 1, p_s_d, p_d, p_s)
@@ -119,6 +124,11 @@ class EntropyCalculator:
         row_sum_matrix = after_mul_p_s.sum(axis=1, keepdims=True)  # shape = (N_S, 1)
         row_sum_matrix = np.where(row_sum_matrix == 0, cls.epsilon, row_sum_matrix)  # 防止除以 0
         p_s_d = after_mul_p_s / row_sum_matrix  # P(S_k | D_l) shape = (N, N_S)
+        p_s_d = np.where(
+            (sd_matrix != 0) & (p_s_d < 0.001),  # 最小非 0 至少为 MIN_PROB_THRESHOLD
+            cls.MIN_PROB_THRESHOLD,
+            p_s_d  # 否则保持原值
+        )
 
         # Step 6.1: P(D_l | S_k)
         # p_d_s = cls._mask_calculate_bayes(sd_matrix == 1, p_s_d, p_d, p_s)

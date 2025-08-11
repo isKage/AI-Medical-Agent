@@ -95,7 +95,8 @@ async def showDetail(request: Request, uid: str):
     try:
         pim = await PIM.get(uid=uid).values("id", "uid", "qa_messages", "diseases", "symptoms", "ieg", "addition", "delta_ieg", "is_related",
                                             "unrelated_count")
-        json_str = json.dumps(pim, indent=2, ensure_ascii=False)
+        cdg = await CDG.get(uid=uid).values("disease_opt", "disease_opt_dict")
+        json_str = json.dumps({"cdg": cdg, "pim": pim}, indent=2, ensure_ascii=False)
 
         # 简单 HTML 页面，展示 JSON
         html_content = f"""
