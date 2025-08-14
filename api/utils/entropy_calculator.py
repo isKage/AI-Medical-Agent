@@ -154,19 +154,29 @@ class EntropyCalculator:
 
         new_disease_prob_dict = {}
         for i, d_name in enumerate(disease_name_list):
-            # a. 需要计算的 Symptom: True
-            SetTrue_ = []
-            for s_idx in SetTrue:
-                if sd_matrix[i, s_idx] == 1:
-                    SetTrue_.append(s_idx)
-            # b. 需要计算的 Symptom: False
-            SetFalse_ = []
-            for s_idx in SetFalse:
-                if sd_matrix[i, s_idx] == 1:
-                    SetFalse_.append(s_idx)
+            # # a. 需要计算的 Symptom: True
+            # SetTrue_ = []
+            # for s_idx in SetTrue:
+            #     if sd_matrix[i, s_idx] == 1:
+            #         SetTrue_.append(s_idx)
+            # # b. 需要计算的 Symptom: False
+            # SetFalse_ = []
+            # for s_idx in SetFalse:
+            #     if sd_matrix[i, s_idx] == 1:
+            #         SetFalse_.append(s_idx)
 
-            prod = np.prod(np.clip(p_s_d[i, SetTrue_], cls.MIN_PROB_THRESHOLD, None))
-            prod_not = np.prod(np.clip((1 - p_s_d)[i, SetFalse_], cls.MIN_PROB_THRESHOLD, None))
+            # prod = np.prod(np.clip(p_s_d[i, SetTrue_], cls.MIN_PROB_THRESHOLD, None))
+            # prod_not = np.prod(np.clip((1 - p_s_d)[i, SetFalse_], cls.MIN_PROB_THRESHOLD, None))
+
+            # prod = np.prod(np.clip(p_s_d[i, SetTrue], cls.MIN_PROB_THRESHOLD, None))
+            # prod_not = np.prod(np.clip((1 - p_s_d)[i, SetFalse], cls.MIN_PROB_THRESHOLD, None))
+            prod = np.prod(np.clip(p_s_d[i, SetTrue], EntropyCalculator.MIN_PROB_THRESHOLD, None))
+            prod_not = np.prod(np.where(
+                p_s_d[i, SetFalse] > EntropyCalculator.MIN_PROB_THRESHOLD,
+                EntropyCalculator.MIN_PROB_THRESHOLD,
+                1
+            ))
+
             p_d_i = p_d[i] * prod * prod_not
             new_disease_prob_dict[d_name] = float(p_d_i)
         sum_p = sum(list(new_disease_prob_dict.values()))
@@ -176,6 +186,106 @@ class EntropyCalculator:
         else:
             updated_disease_prob = {k: v / sum_p for k, v in new_disease_prob_dict.items()}
         return cls._temperature_scaling(updated_disease_prob, temperature=5.0)
+
+    @classmethod
+    async def updateDiseaseProbV2(
+            cls,
+            disease_prob_dict: Dict[str, float],
+            new_known_symptom_dict: Optional[Dict[str, bool | None]],
+            known_symptom_dict: Optional[Dict[str, bool | None]] = None,
+    ):
+        """
+        更新疾病概率
+        :param disease_prob_dict: 当前疾病概率 (待更新) {'D1': 0.1, 'D2': 0.4, ...}
+        :param new_known_symptom_dict: 最新获取的症状信息 {'S6': True | False | None}
+        :param known_symptom_dict: 当前疾病概率 (待更新) {'S1': True, 'S2': False, 'S3': None}
+        :return: 最新的疾病概率 {'D1': 0.1, 'D2': 0.4, ...}
+        """
+        if list(new_known_symptom_dict.values())[0] is None:
+            return disease_prob_dict
+        # Step 1: old 疾病概率
+        disease_prob_list = list(disease_prob_dict.values())
+
+        # Step 2: 获取 Disease & Symptom 的信息
+        _, symptom_prob_dict, sd_relation = await EntropyCalculator.SDInfo(disease_prob_dict, known_symptom_dict)
+
+        # Step 3: 获取 Symptom-Disease Matrix
+        disease_name_list = list(disease_prob_dict.keys())
+        symptom_name_list = list(symptom_prob_dict.keys())
+        sd_df = EntropyCalculator.SDMatrix(disease_name_list, symptom_name_list, sd_relation)
+        sd_matrix = sd_df.values.astype(np.float16)
+
+        # Step 4: 归一化/标准化
+        p_s = np.array(list(symptom_prob_dict.values()), dtype=np.float16)
+        p_s = EntropyCalculator._safe_normalize(p_s)  # P(S_k)
+
+        p_d = np.array(disease_prob_list, np.float16)
+        p_d = EntropyCalculator._safe_normalize(p_d)  # P(D_l)
+
+        # Step 5: P(S_k | D_l)
+        after_mul_p_s = sd_matrix * p_s
+        row_sum_matrix = after_mul_p_s.sum(axis=1, keepdims=True)  # shape = (N_S, 1)
+        row_sum_matrix = np.where(row_sum_matrix == 0, EntropyCalculator.epsilon, row_sum_matrix)  # 防止除以 0
+        p_s_d = after_mul_p_s / row_sum_matrix  # P(S_k | D_l) shape = (N, N_S)
+        p_s_d = np.where(
+            (sd_matrix != 0) & (p_s_d < 0.001),  # 最小非 0 至少为 MIN_PROB_THRESHOLD
+            EntropyCalculator.MIN_PROB_THRESHOLD,
+            p_s_d  # 否则保持原值
+        )
+
+        # Step 7: 返回最新疾病概率
+        # if new_known_symptom_dict is not None:
+        #     (new_symptom_name, flag), = new_known_symptom_dict.items()
+        #     known_symptom_dict[new_symptom_name] = flag
+
+        SetTrue = []
+        SetFalse = []
+        for s_name, s_flag in new_known_symptom_dict.items():
+            col_idx = sd_df.columns.get_loc(s_name)
+            if s_flag is True:
+                SetTrue.append(col_idx)
+            elif s_flag is False:
+                SetFalse.append(col_idx)
+            else:
+                continue
+
+        new_disease_prob_dict = {}
+        for i, d_name in enumerate(disease_name_list):
+            # # a. 需要计算的 Symptom: True
+            # SetTrue_ = []
+            # for s_idx in SetTrue:
+            #     if sd_matrix[i, s_idx] == 1:
+            #         SetTrue_.append(s_idx)
+            # # b. 需要计算的 Symptom: False
+            # SetFalse_ = []
+            # for s_idx in SetFalse:
+            #     if sd_matrix[i, s_idx] == 1:
+            #         SetFalse_.append(s_idx)
+
+            # prod = np.prod(np.clip(p_s_d[i, SetTrue_], cls.MIN_PROB_THRESHOLD, None))
+            # prod_not = np.prod(np.clip((1 - p_s_d)[i, SetFalse_], cls.MIN_PROB_THRESHOLD, None))
+
+            # prod = np.prod(np.clip(p_s_d[i, SetTrue], cls.MIN_PROB_THRESHOLD, None))
+            # prod_not = np.prod(np.clip((1 - p_s_d)[i, SetFalse], cls.MIN_PROB_THRESHOLD, None))
+            prod = np.prod(np.clip(p_s_d[i, SetTrue], EntropyCalculator.MIN_PROB_THRESHOLD, None))
+            prod_not = np.prod(np.where(
+                p_s_d[i, SetFalse] > EntropyCalculator.MIN_PROB_THRESHOLD,
+                EntropyCalculator.MIN_PROB_THRESHOLD,
+                1
+            ))
+
+            p_d_i = p_d[i] * prod * prod_not
+            new_disease_prob_dict[d_name] = float(p_d_i)
+        sum_p = sum(list(new_disease_prob_dict.values()))
+
+        if sum_p < EntropyCalculator.epsilon:
+            sum_p = 1
+            updated_disease_prob = {k: (v + EntropyCalculator.MIN_PROB_THRESHOLD) / sum_p for k, v in
+                                    new_disease_prob_dict.items()}
+        else:
+            updated_disease_prob = {k: v / sum_p for k, v in new_disease_prob_dict.items()}
+
+        return EntropyCalculator._temperature_scaling(updated_disease_prob, temperature=5.0)
 
     @classmethod
     async def SDInfo(

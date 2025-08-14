@@ -15,7 +15,7 @@ templates = Jinja2Templates(directory=templates_path)
 
 DELTA_IEG_CONVERGENCE = 2  # 收敛次数
 ROUND_MAX = 12  # 对话次数限制
-ROUND_MIN = 8  # 对话次数限制
+ROUND_MIN = 6  # 对话次数限制
 MAX_UNRELATED_RETRIES = 2  # 无关回答最多重复次数
 
 
@@ -219,8 +219,13 @@ async def sendChat(uid: str, message: str = Form(...)):
         })
 
     new_known_symptom_dict = {symptom_name: symptom_TFN}  # 新症状 {'S2': False}
-    origin_disease_prob = await PIMService.precise_search(list(pim.diseases[-1].keys()))
-    disease_prob_dict = await EntropyCalculator.updateDiseaseProb(origin_disease_prob, new_known_symptom_dict, symptom_dict)
+
+    # origin_disease_prob = await PIMService.precise_search(list(pim.diseases[-1].keys()))
+    # disease_prob_dict = await EntropyCalculator.updateDiseaseProb(origin_disease_prob, new_known_symptom_dict, symptom_dict)
+    latest_disease_prob_dict = await PIM.get(uid=uid).values("diseases")
+    latest_disease_prob_dict = latest_disease_prob_dict.get("diseases")[-1]
+    disease_prob_dict = await EntropyCalculator.updateDiseaseProbV2(latest_disease_prob_dict, new_known_symptom_dict, symptom_dict)
+
     pim.diseases.append(disease_prob_dict)  # 新疾病概率
     symptom_dict[symptom_name] = symptom_TFN  # 新症状是否字典, 未保存入数据库
 

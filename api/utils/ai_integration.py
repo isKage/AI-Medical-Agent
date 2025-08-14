@@ -12,7 +12,7 @@ from http import HTTPStatus
 
 import settings
 from settings import API_KEY, PIM_01_APP_ID, PIM_02_APP_ID, PIM_03_APP_ID, PSG_APP_ID, CDG_01_APP_ID, CDG_02_APP_ID, PIM_02_APP_ID_PLUS, \
-    EXPERIMENT_01_APP_ID, EXPERIMENT_02_APP_ID
+    EXPERIMENT_01_APP_ID, EXPERIMENT_02_APP_ID, EXPERIMENT_03_APP_ID
 
 
 class AIGenerator:
@@ -440,6 +440,60 @@ class AIGenerator:
                         await asyncio.sleep(0.5)  # 等待 0.5 秒
                         continue
                     error_info = cls._error_info_http(response, "EXPERIMENT02")
+                    raise Exception(error_info + f" (Attempt {attempt + 1})")
+            except Exception as e:
+                raise e
+
+    @classmethod
+    async def experiment03PredictDiseaseOnly(
+            cls,
+            desc: str,
+            symptom_dict: Dict[str, str | bool | None],
+    ) -> List[str]:
+        """
+        预测前 k 个疾病
+        :param desc: 初步描述 "..."
+        :param symptom_dict: 症状 {'S1': True, ...} or {'S1': '是'}
+        :return: ['D1', 'D2', 'D3', 'D4']
+        """
+        symptoms = {}
+        v_list = list(symptom_dict.values())
+        if isinstance(v_list[0], bool):
+            # 转换格式
+            for k, v in symptom_dict.items():
+                if v is True:
+                    symptoms[k] = "是"
+                elif v is False:
+                    symptoms[k] = "否"
+                else:
+                    symptoms[k] = "尚不清楚"
+        else:
+            symptoms = symptom_dict
+
+        user_content = (f"患者主诉: **小儿疾病，患者为儿童。**{desc}\n"
+                        f"症状发生与否字典: \n{symptoms}\n")
+        messages = [
+            {"role": "user", "content": user_content}
+        ]
+        # 重试机制
+        max_retries = 2
+        for attempt in range(max_retries):
+            try:
+                response = await cls._call_application(messages, EXPERIMENT_03_APP_ID)
+                if response.status_code == HTTPStatus.OK:
+                    disease_name_list_dict = cls._getJsonResponse(response.output.text)
+                    _disease_name_list = disease_name_list_dict.get("disease", [])
+                    # disease_pred_list = []
+                    # for d in _disease_name_list:
+                    #     if d in disease_name_list:
+                    #         disease_pred_list.append(d)
+                    disease_pred_list = _disease_name_list
+                    return disease_pred_list
+                else:
+                    if attempt < max_retries - 1:
+                        await asyncio.sleep(0.5)  # 等待 0.5 秒
+                        continue
+                    error_info = cls._error_info_http(response, "EXPERIMENT03")
                     raise Exception(error_info + f" (Attempt {attempt + 1})")
             except Exception as e:
                 raise e
