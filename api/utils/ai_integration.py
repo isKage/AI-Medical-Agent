@@ -338,13 +338,15 @@ class AIGenerator:
             cls,
             desc: str,
             real_symptom_dict: Dict[str, str | bool | None],
-            required_symptom_list: List[str]
+            required_symptom_list: List[str],
+            other_info: str | dict = ""
     ) -> Dict[str, bool | None]:
         """
         根据 real_symptom_dict 生成本系统的症状字典
         :param desc: 患者主诉
         :param real_symptom_dict: 真实症状发生与否字典 {'S1': True, ...} or {'S1': '是'}
         :param required_symptom_list: 需要询问的症状名列表 ['', ...]
+        :param other_info: 其他信息
         :return: 需要询问的症状发生与否字典 {'SA': True, 'SB': False, 'SC': None}
         """
         # 检查 real_symptom_dict
@@ -362,9 +364,12 @@ class AIGenerator:
         else:
             symptom_ori = real_symptom_dict
 
-        user_content = (f"【提供的信息】\n患者主诉: **小儿疾病，患者为儿童。**{desc}\n"
-                        f"真实的症状发生与否字典:\n{symptom_ori}\n"
-                        f"\n【医生询问的症状】\n{required_symptom_list}")
+        user_content = (f"【医生询问的症状】\n"
+                        f"{required_symptom_list}\n\n"
+                        f"【提供的信息】\n"
+                        f"- 患者主诉: **小儿疾病，患者为儿童。**{desc}\n"
+                        f"- 真实的症状发生与否字典:\n{symptom_ori}\n"
+                        f"- 其他信息\n{other_info}\n")
 
         messages = [
             {"role": "user", "content": user_content}
@@ -447,13 +452,13 @@ class AIGenerator:
     @classmethod
     async def experiment03PredictDiseaseOnly(
             cls,
-            desc: str,
             symptom_dict: Dict[str, str | bool | None],
+            disease_name_list: List[str]
     ) -> List[str]:
         """
         预测前 k 个疾病
-        :param desc: 初步描述 "..."
         :param symptom_dict: 症状 {'S1': True, ...} or {'S1': '是'}
+        :param disease_name_list: 候选疾病
         :return: ['D1', 'D2', 'D3', 'D4']
         """
         symptoms = {}
@@ -470,7 +475,7 @@ class AIGenerator:
         else:
             symptoms = symptom_dict
 
-        user_content = (f"患者主诉: **小儿疾病，患者为儿童。**{desc}\n"
+        user_content = (f"侯选待排序疾病列表: {disease_name_list}\n"
                         f"症状发生与否字典: \n{symptoms}\n")
         messages = [
             {"role": "user", "content": user_content}

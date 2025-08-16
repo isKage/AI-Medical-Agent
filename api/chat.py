@@ -254,9 +254,9 @@ async def sendChat(uid: str, message: str = Form(...)):
         known_symptom_name_list = list(symptom_dict.keys())
         skip_question = await AIGenerator.pim02GenerateQuestionPLUS(disease_name_list, symptom_name, known_symptom_name_list, qa_messages)
         f = skip_question.get('skip', True)
-        # 测试 debug
-        if symptom_name in ["食欲不振", "面色苍白", "血压下降"]:
-            f = True
+        # # 测试 debug
+        # if symptom_name in ["食欲不振", "面色苍白", "血压下降"]:
+        #     f = True
         if not f:
             break
         symptom_dict[symptom_name] = None  # 跳过 symptom_name

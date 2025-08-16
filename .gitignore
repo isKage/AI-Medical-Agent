@@ -40,3 +40,8 @@ Experiment/
 api/experiment.py
 check.ipynb
 .ipynb_checkpoints/
+api/experiment_v2.py
+
+api/utils/experiment_agent.py
+api/utils/experiment_service.py
+Experiment_v2/

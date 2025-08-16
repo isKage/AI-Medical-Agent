@@ -152,3 +152,68 @@ class MedicalKnowledge(Model):
 
     class Meta:
         table = "medical_knowledge"
+
+
+class ExperimentData(Model):
+    """测试数据"""
+    uid = fields.CharField(max_length=10, unique=True)  # uid
+    diagnosis = fields.CharField(max_length=32)  # 诊断结果 "..."
+    self_report = fields.TextField(default="")  # 初次自述 "..."
+    dialogue = fields.JSONField(default=list)  # 对话 [{"医生": "..."}, {"患者": "..."}]
+    description = fields.TextField(default="")  # 整理后的主诉
+    symptom = fields.JSONField(default=dict)  # 症状 {"S1": True, ...}
+
+    class Meta:
+        table = "experiment_data"
+
+
+class ExperimentPIM(Model):
+    """模拟测试"""
+    uid = fields.CharField(max_length=10, unique=True)  # uid
+    diagnosis = fields.CharField(max_length=32)  # 诊断结果 "..."
+    self_report = fields.TextField(default="")  # 初次自述 "..."
+
+    dialogue = fields.JSONField(default=list)  # 问诊对话 [{"doctor": "..."}, {"patient": "..."}, ...]
+
+    diseases = fields.JSONField(default=list)  # 每轮问诊对话的各个疾病概率 [{"D1": 0.4, ...}, ...]
+    symptoms = fields.JSONField(default=dict)  # 症状 {"S1": True, ...}
+
+    ieg = fields.JSONField(default=list)  # 每轮问诊对话，针对各个症状带来的熵增 [{"S1": 0.003, ...}, ...]
+    symptom_opt = fields.CharField(max_length=30, default="")  # 辅助：最优症状
+    delta_ieg = fields.JSONField(default=list)  # 辅助：熵增的变化率 [0.001, 0.004, ...]
+
+    diseases_with_ai = fields.JSONField(default=list)
+
+    # session_id = fields.CharField(max_length=100, null=True, default=None)
+    assistant_id = fields.CharField(max_length=100, null=True, default=None)
+    thread_id = fields.CharField(max_length=100, null=True, default=None)
+
+    disease_prob_addition = fields.JSONField(default=dict)  # {"D1": 0.4, ...}
+    symptom_dict_addition = fields.JSONField(default=dict)  # {"S1": True, ...}
+
+    created_at = fields.DatetimeField(auto_now_add=True)
+
+    class Meta:
+        table = "experiment_pim"
+
+
+class ExperimentOnlyAI(Model):
+    """模拟测试, 只有 AI"""
+    uid = fields.CharField(max_length=10, unique=True)  # uid
+    diagnosis = fields.CharField(max_length=32)  # 诊断结果 "..."
+    self_report = fields.TextField(default="")  # 初次自述 "..."
+
+    dialogue = fields.JSONField(default=list)  # 问诊对话 [{"doctor": "..."}, {"patient": "..."}, ...]
+
+    symptoms = fields.JSONField(default=dict)  # 症状 {"S1": True, ...}, 来自 ExperimentData
+
+    diseases_pred = fields.JSONField(default=list)
+
+    # session_id = fields.CharField(max_length=100, null=True, default=None)
+    assistant_id = fields.CharField(max_length=100, null=True, default=None)
+    thread_id = fields.CharField(max_length=100, null=True, default=None)
+
+    created_at = fields.DatetimeField(auto_now_add=True)
+
+    class Meta:
+        table = "experiment_only_ai"

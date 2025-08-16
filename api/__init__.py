@@ -5,3 +5,4 @@ from .note import api_note
 from .report import api_report
 from .eval import api_eval
 from .experiment import api_experiment
+from .experiment_v2 import api_experiment_v2

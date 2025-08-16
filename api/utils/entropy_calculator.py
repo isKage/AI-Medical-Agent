@@ -51,7 +51,7 @@ class EntropyCalculator:
         # Step 5: P(S_k | D_l)
         after_mul_p_s = sd_matrix * p_s
         row_sum_matrix = after_mul_p_s.sum(axis=1, keepdims=True)  # shape = (N_S, 1)
-        row_sum_matrix = np.where(row_sum_matrix == 0, cls.epsilon, row_sum_matrix)  # 防止除以 0
+        row_sum_matrix = np.where(row_sum_matrix < cls.epsilon, cls.epsilon, row_sum_matrix)  # 防止除以 0
         p_s_d = after_mul_p_s / row_sum_matrix  # P(S_k | D_l) shape = (N, N_S)
         p_s_d = np.where(
             (sd_matrix != 0) & (p_s_d < 0.001),  # 最小非 0 至少为 MIN_PROB_THRESHOLD
@@ -122,7 +122,7 @@ class EntropyCalculator:
         # Step 5: P(S_k | D_l)
         after_mul_p_s = sd_matrix * p_s
         row_sum_matrix = after_mul_p_s.sum(axis=1, keepdims=True)  # shape = (N_S, 1)
-        row_sum_matrix = np.where(row_sum_matrix == 0, cls.epsilon, row_sum_matrix)  # 防止除以 0
+        row_sum_matrix = np.where(row_sum_matrix < cls.epsilon, cls.epsilon, row_sum_matrix)  # 防止除以 0
         p_s_d = after_mul_p_s / row_sum_matrix  # P(S_k | D_l) shape = (N, N_S)
         p_s_d = np.where(
             (sd_matrix != 0) & (p_s_d < 0.001),  # 最小非 0 至少为 MIN_PROB_THRESHOLD
@@ -225,7 +225,7 @@ class EntropyCalculator:
         # Step 5: P(S_k | D_l)
         after_mul_p_s = sd_matrix * p_s
         row_sum_matrix = after_mul_p_s.sum(axis=1, keepdims=True)  # shape = (N_S, 1)
-        row_sum_matrix = np.where(row_sum_matrix == 0, EntropyCalculator.epsilon, row_sum_matrix)  # 防止除以 0
+        row_sum_matrix = np.where(row_sum_matrix < cls.epsilon, cls.epsilon, row_sum_matrix)  # 防止除以 0
         p_s_d = after_mul_p_s / row_sum_matrix  # P(S_k | D_l) shape = (N, N_S)
         p_s_d = np.where(
             (sd_matrix != 0) & (p_s_d < 0.001),  # 最小非 0 至少为 MIN_PROB_THRESHOLD
